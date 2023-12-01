@@ -1,0 +1,50 @@
+- hosts: manager
+  name: initial deploy
+  become: yes
+  tasks:
+    - name: create folder
+      file:
+        path: /opt/stack
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+
+    - name: copy proxy service config
+      become: no
+      copy:
+        src: ./stack/proxy.yml
+        dest: /opt/stack/proxy.yml
+
+    - name: copy db service config
+      become: no
+      copy:
+        src: ./stack/db.yml
+        dest: /opt/stack/db.yml
+
+    - name: create proxy network
+      docker_network:
+        name: traefik-proxy
+        scope: swarm
+        attachable: true
+        driver: overlay
+
+    - name: create db network
+      docker_network:
+        name: db-net
+        scope: swarm
+        attachable: true
+        driver: overlay
+
+    - name: deploy proxy
+      docker_stack:
+        state: present
+        name: proxy
+        compose:
+          - /opt/stack/proxy.yml
+
+    - name: deploy database
+      docker_stack:
+        state: present
+        name: postgres
+        compose:
+          - /opt/stack/db.yml

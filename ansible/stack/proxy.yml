@@ -1,0 +1,41 @@
+version: "3"
+
+services:
+  traefik:
+    image: traefik
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
+    command:
+      - --api.insecure=true
+      - --api.dashboard=true
+      - --log.level=DEBUG
+      - --providers.docker=true
+      - --providers.docker.swarmMode=true
+      - --providers.docker.exposedByDefault=false
+      - --providers.docker.network=traefik-proxy
+      - --entrypoints.http.address=:80
+        #      - --entrypoints.http.http.redirections.entryPoint.to=https
+        #      - --entrypoints.http.http.redirections.entryPoint.scheme=https
+      - --entrypoints.https.address=:443
+      - --certificatesresolvers.staging.acme.email=admin@alterdojec.me
+      - --certificatesresolvers.staging.acme.storage=acme.json
+      - --certificatesresolvers.staging.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
+      - --certificatesresolvers.staging.acme.httpchallenge.entrypoint=http
+
+      - --experimental.plugins.plugin-simplecache.modulename=github.com/traefik/plugin-simplecache
+      - --experimental.plugins.plugin-simplecache.version=v0.2.1
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      - traefik-proxy
+
+networks:
+  traefik-proxy:
+    external: true

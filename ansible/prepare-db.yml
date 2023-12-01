@@ -1,0 +1,25 @@
+- hosts: manager
+  name: prepare db
+  become: yes
+  vars:
+    image_tag: "cr.yandex/crp34gmecghg1igsujuv/bingo:latest"
+  tasks:
+    - name: run prepare_db
+      docker_swarm_service:
+        name: prepare-db
+        image: "{{ image_tag }}"
+        args:
+          - /app/bingo
+          - prepare_db
+        restart_config:
+          condition: none
+        placement:
+          constraints:
+            - node.role == manager
+        networks:
+          - db-net
+        resolve_image: yes
+
+
+
+

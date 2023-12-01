@@ -1,0 +1,22 @@
+- hosts: manager
+  name: deploy bingo service
+  become: yes
+  tasks:
+    # fixes /api/customer/:id and /api/session/:id
+    # very hacky
+    - name: create indexes
+      shell: docker exec $(docker ps -q -f name=postgres) psql -U postgres -c "CREATE INDEX customers_id_indx ON customers(id); CREATE INDEX sessions_id_indx ON sessions(id)"
+      ignore_errors: yes # will throw error if already created
+
+    - name: copy config
+      become: no
+      template:
+        src: ./stack/bingo.yml
+        dest: /opt/stack/
+
+    - name: deploy service
+      docker_stack:
+        state: present
+        name: bingo-svc
+        compose:
+          - /opt/stack/bingo.yml

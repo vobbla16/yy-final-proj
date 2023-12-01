@@ -1,0 +1,28 @@
+- become: yes
+  hosts: all
+  name: init docker swarm cluster
+  tasks:
+    - name: init
+      docker_swarm:
+        state: present
+      when: ansible_hostname == "manager"
+
+    - name: get join-token
+      shell: docker swarm join-token worker -q
+      register: worker_join_token_result
+      when: ansible_hostname == "manager"
+      ignore_errors: yes
+
+    - name: reassign variable
+      set_fact:
+        worker_join_token: "{{ hostvars[item].worker_join_token_result.stdout }}"
+      with_items:
+        - "{{ groups['manager'] }}"
+
+    - name: join cluster
+      docker_swarm:
+        state: join
+        join_token: "{{worker_join_token}}"
+        remote_addrs: [ '10.7.1.10:2377' ]
+      when: ansible_hostname is match("worker.*")
+

@@ -1,0 +1,52 @@
+version: "3"
+
+services:
+  postgres:
+    image: cr.yandex/crp34gmecghg1igsujuv/bingo:latest
+    networks:
+      - db-net
+      - traefik-proxy
+    healthcheck:
+      test: curl --fail http://localhost:19882 || exit 1
+      interval: 5s
+      retries: 5
+      start_period: 20s
+      timeout: 10s
+    deploy:
+      mode: replicated
+      replicas: 4
+      placement:
+        constraints: [node.role == worker]
+      labels:
+        - traefik.enable=true
+
+        - traefik.http.middlewares.cacher.plugin.plugin-simplecache.path=/tmp
+
+        - traefik.http.routers.bingo-http.entrypoints=http
+        - traefik.http.routers.bingo-http.rule=Host(`{{ inventory_hostname }}`) && !Path(`/long_dummy`)
+
+        - traefik.http.routers.bingo-http-cache.entrypoints=http
+        - traefik.http.routers.bingo-http-cache.rule=Host(`{{ inventory_hostname }}`) && Path(`/long_dummy`)
+        - traefik.http.routers.bingo-http-cache.middlewares=cacher@docker
+
+        - traefik.http.routers.bingo-https.entrypoints=https
+        - traefik.http.routers.bingo-https.rule=Host(`{{ inventory_hostname }}`) && !Path(`/long_dummy`)
+        - traefik.http.routers.bingo-https.tls=true
+        - traefik.http.routers.bingo-https.tls.certresolver=staging
+
+        - traefik.http.routers.bingo-https-cache.entrypoints=https
+        - traefik.http.routers.bingo-https-cache.rule=Host(`{{ inventory_hostname }}`) && Path(`/long_dummy`)
+        - traefik.http.routers.bingo-https-cache.tls=true
+        - traefik.http.routers.bingo-https-cache.middlewares=cacher@docker
+        - traefik.http.routers.bingo-https-cache.tls.certresolver=staging
+
+        - traefik.http.services.bingo.loadBalancer.server.port=19882
+        - traefik.http.services.bingo.loadBalancer.healthCheck.path=/ping
+        - traefik.http.services.bingo.loadBalancer.healthCheck.interval=5s
+
+
+networks:
+  db-net:
+    external: true
+  traefik-proxy:
+    external: true

@@ -1,0 +1,10 @@
+ssh-keys
+local
+
+terraform/.terraform
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+
+image/bingo
+ansible/dyn_inventory.tmp
